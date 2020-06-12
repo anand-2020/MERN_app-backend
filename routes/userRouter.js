@@ -1,25 +1,22 @@
 const express = require('express');
-const User = require('../models/userModel.js');
+const userController = require('./../controllers/userController');
+const authController = require('./../controllers/authController');
 
 const router = express.Router();
 
-router.route('/').get((req, res) => {
-   User.find()
-   .then(users => res.json(users))
-   .catch(err => res.status(400).json('Error: ' + err));
-});
+router.post('/signup', authController.signup);
+router.post('/login', authController.login);
 
-router.route('/add').post((req,res) => {
-    const username = req.body.username;
+router.patch('/updateMyPassword', authController.protect, authController.updatePassword);
 
-    const newUser = new User({username});
+router.patch('/updateMe', authController.protect, userController.updateMe);
 
-    User.init().then(() => {
-        newUser.save()
-       .then(() => res.json('user added'))
-       .catch(err => res.status(400).json('Error: ' + err));
-     });
-    
-});
+router
+  .route('/')
+  .get(authController.protect, authController.restrictTo('admin'), userController.getAllUsers);
+
+router
+  .route('/:id')
+  .patch(authController.protect, authController.restrictTo('admin'), userController.updateUser);
 
 module.exports = router;
