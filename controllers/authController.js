@@ -1,4 +1,4 @@
-const { promisify } = ('util');
+
 const jwt = require('jsonwebtoken');
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
@@ -16,14 +16,14 @@ const createSendToken =(user, statusCode, res) => {
         expires: new Date(
             Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
         ),
-        httpOnly: true
+        httpOnly: true,
+      //  domain:'http://localhost:3000/'
     };
-    if(process.env.NODE_ENV === 'production ') cookieOptions.secure = true;
+    if(process.env.NODE_ENV === 'production ') {  cookieOptions.secure = true; console.log(cookieOptions.secure); }
 
     res.cookie('jwt', token, cookieOptions); 
 
     user.password = undefined;
-    console.log(token);
 
     res.status(statusCode).json({
         status:'success',
@@ -59,21 +59,46 @@ exports.login = catchAsync(async (req, res, next) => {
    createSendToken(user, 200, res);
 });
 
+exports.logout = (req,res) => {
+    res.cookie('jwt', 'loggedout', {
+         expires:new Date(Date.now + 40 * 1000),
+         httpOnly: true
+    });
+    res.status(200).json({status: 'success', message:'Logged out!!'});
+};
+
+exports.checkLoggedInStatus = (req,res) => {
+      res.status(200).json({
+          status: 'success',
+          data: { user:req.user   }
+      });
+};
+
 exports.protect = catchAsync(async (req,res,next) => {
     let token;
     if(
         req.headers.authorization && req.headers.authorization.startsWith('Bearer')
     ) { token = req.headers.authorization.split(' ')[1]; }
-    
+    else if(req.cookies.jwt) {
+        token = req.cookies.jwt
+    }
     if(!token) {
         return next(
             new AppError('Access Denied!! Please log in to get access', 401)
         );
     }
-      
+      let decoded;
+      jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+            decoded = user;
+            req.user= user;
+      });
 
-    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-    
+      if(!decoded){
+          return next(
+              new AppError('Invalid token', 403)
+          );
+      }
+
     const freshUser = await User.findById(decoded.id);
     if(!freshUser) { 
         return next(new AppError('The token belonging to this user does no longer exist', 401)) }
@@ -90,7 +115,7 @@ exports.protect = catchAsync(async (req,res,next) => {
 exports.restrictTo = (...role) => {
     return (req,res,next) => {
        if(!role.includes(req.user.role)) {
-           return next(new AppError('You do not have permission to delete this post',403));
+           return next(new AppError('Access Denied!!',403));
        }
         
        next();
@@ -101,7 +126,7 @@ exports.updatePassword =catchAsync(async (req,res,next) => {
     const user = await User.findById(req.user.id).select('+password');
     
     if(!(await user.correctPassword(req.body.passwordCurrent, user.password))) {
-        return next(new AppError('Password wrong', 401));
+        return next(new AppError('Password Wrong', 401));
     }
 
     user.password = req.body.password;
