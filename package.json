@@ -12,14 +12,12 @@
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
-    "es6-promisify": "^6.1.1",
     "express": "^4.17.1",
     "express-validator": "^6.5.0",
     "jsonwebtoken": "^8.5.1",
-    "mongoose": "^5.9.18",
-    "util": "^0.12.3",
-    "util.promisify": "^1.0.1"
+    "mongoose": "^5.9.18"
   }
 }

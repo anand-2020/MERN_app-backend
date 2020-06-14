@@ -13,7 +13,7 @@ router
   .route('/:id')
   .get(postController.getPost)
   .patch(authController.protect, postController.updatePost)
-  .delete(authController.protect, authController.restrictTo('admin'), postController.deletePost);
+  .delete(authController.protect, postController.deletePost);
   
 
 module.exports = router;

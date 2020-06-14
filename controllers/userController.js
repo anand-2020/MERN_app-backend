@@ -1,6 +1,7 @@
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const Post = require('../models/postModel');
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -26,7 +27,7 @@ exports.updateMe = catchAsync(async (req,res,next) => {
       );
   }
 
-const filteredBody = filterObj(req.body, 'name', 'email');
+const filteredBody = filterObj(req.body, 'username', 'email');
 const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
     new: true,
     runValidators: true
@@ -41,7 +42,8 @@ const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
 });
 
 exports.updateUser = catchAsync(async (req, res, next) => {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
+  const filteredBody = filterObj(req.body, 'role','blacklist');
+    const user = await User.findByIdAndUpdate(req.params.id, filteredBody, {
         new: true,
        runValidators: true
       });
@@ -49,6 +51,13 @@ exports.updateUser = catchAsync(async (req, res, next) => {
       if (!user) {
         return next(new AppError('No user found with that ID', 404));
       }
+      /*if(user.blacklist){
+        const posts = await Post.find({author:user.username });
+        posts.forEach( post => { post.blacklist= true; });
+
+        await posts.save();
+      }*/
+      
     
       res.status(200).json({
         status: 'success',
@@ -58,3 +67,13 @@ exports.updateUser = catchAsync(async (req, res, next) => {
       });
 });
 
+exports.myPosts = catchAsync(async (req, res, next) => {
+     const posts = await Post.find({author:req.user.username });
+
+     res.status(200).json({
+      status: 'success',
+      data: {
+        posts
+      }
+    });
+});

@@ -3,11 +3,11 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const postSchema = new Schema({
-    author: {  type: String,  required: true },
+    author: {  type: String },
     content: { type: String,  required: true },
-    upVote:{ type: Number },
-    downVote:{ type: Number },
-    blacklist: { type: Boolean}
+    upVote:{ type: Number, default: 0 },
+    downVote:{ type: Number, default: 0 },
+    blacklist: { type: Boolean, default: false }
 }, {
     timestamps: true,
 });

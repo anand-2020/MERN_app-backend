@@ -20,7 +20,7 @@ const userSchema = new Schema({
        validate: [validator.isEmail, 'Please provide a valid email']
     },
     role: { type: String, enum: ['user','admin'], default:'user' },
-    blacklist: {type: Boolean },
+    blacklist: {type: Boolean, default:'false' },
     password: {
         type: String,
         required: true,
