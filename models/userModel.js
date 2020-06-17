@@ -37,7 +37,11 @@ const userSchema = new Schema({
             message: `Passwords don't match!!`
         }
     },
-    passwordChangedAt: Date
+    passwordChangedAt: Date,
+    passResetToken: String,
+    passwordResetExpires : Date,
+    emailVerificationToken: String,
+    emailIsVerified: {type: Boolean, default: false}
 
 }, {
     timestamps: true,
@@ -61,6 +65,7 @@ userSchema.pre('save', function(next) {
   }); 
   
 
+
 userSchema.methods.correctPassword = async function(enteredPassword, userPassword) {
     return  await bcrypt.compare(enteredPassword, userPassword);
 };
@@ -72,6 +77,16 @@ userSchema.methods.changedPasswordAfter = function(JWTTimeStamp) {
        return JWTTimeStamp < changedTimeStamp;
     }
     return false;
+};
+
+userSchema.methods.passwordResetToken = async function () {
+    const resetToken = Math.floor(Math.random()*Math.floor(9999));
+
+    this.passResetToken = await bcrypt.hash(JSON.stringify(resetToken), 10);
+    
+    this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+    return resetToken;
 };
 
 const User = mongoose.model('User', userSchema);
