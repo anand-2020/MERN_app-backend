@@ -1,17 +1,26 @@
-const Post = require('../models/postModel.js');
+const Post = require('../models/postModel');
+const Review = require('../models/reviewModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 
 exports.getAllPosts = catchAsync(async (req,res,next) =>{
-    const posts = await Post.find({ blacklist: false });
-
+    const posts = await Post.find().populate('rxn');
+   /* posts.forEach(post => {
+        post.rxn.forEach( el => {
+             if(el.review === 'upVote') post.upVote++;
+             else if(el.review === 'downVote') post.downVote++;
+             else ;
+        });
+    });*/
     res.status(200).json({
         status: 'success',
         data: {
           posts
         }
-      });
+      });  
 });
+
+
 
 exports.getPost = catchAsync(async (req, res,next) => {
     const post = await Post.findById(req.params.id);
@@ -93,6 +102,7 @@ exports.deletePost = catchAsync(async (req, res, next) => {
     }
     
     await post.remove();
+    await Review.deleteMany({post:req.params.id});
   
     res.status(204).json({
       status: 'success',
