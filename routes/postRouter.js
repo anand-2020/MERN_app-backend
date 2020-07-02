@@ -19,6 +19,7 @@ router
 router
    .route('/review/:id')
    .post(authController.protect, reviewController.addReview)
+   .patch(authController.protect, reviewController.updateReview)
    .delete(authController.protect, reviewController.deleteReview);
   
 

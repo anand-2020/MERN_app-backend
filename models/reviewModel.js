@@ -20,7 +20,7 @@ const reviewSchema = new mongoose.Schema(
   },
 );
 
-
+reviewSchema.index({post: 1, user: 1}, {unique: true});
 
 const Review = mongoose.model('Review', reviewSchema);
 

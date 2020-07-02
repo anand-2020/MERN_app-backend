@@ -7,13 +7,12 @@ const postSchema = new Schema({
     content: { type: String,  required: true },
     upVote:{ type: Number, default: 0 },
     downVote:{ type: Number, default: 0 },
-    blacklist: { type: Boolean, default: false }
+    blacklist: { type: Boolean, default: false },
+    createdAt: {type: Date}
 }, {
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
-  }, {
-    timestamps: true,
-});
+  });
 
 postSchema.virtual('rxn', {
     ref: 'Review',

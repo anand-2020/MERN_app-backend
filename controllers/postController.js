@@ -4,7 +4,7 @@ const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 
 exports.getAllPosts = catchAsync(async (req,res,next) =>{
-    const posts = await Post.find().populate('rxn');
+    const posts = await Post.find().sort('-createdAt').populate('rxn');
    /* posts.forEach(post => {
         post.rxn.forEach( el => {
              if(el.review === 'upVote') post.upVote++;
@@ -14,6 +14,7 @@ exports.getAllPosts = catchAsync(async (req,res,next) =>{
     });*/
     res.status(200).json({
         status: 'success',
+        len:posts.length,
         data: {
           posts
         }
@@ -49,12 +50,13 @@ exports.addPost = catchAsync(async (req,res,next) => {
 
     const author = req.user.username;
     const content = req.body.content;
-
+    const createdAt = Date.now();
     const newPost = new Post({
         author: author,
-        content: content
+        content: content,
+        createdAt
     }); 
-    console.log(req.body);
+    
     const addedPost = await Post.create(newPost);
 
     res.status(201).json({
@@ -77,10 +79,10 @@ exports.updatePost = catchAsync(async (req,res,next) => {
         return next(new AppError(`You don't have permission to update this post`,403));
       }
 
-      post.content = req.body.content;
-      if(req.body.blacklist && req.user.role === 'admin') post.blacklist = req.body.blacklist;
-
-      await post.save();
+      if(req.body.content) post.content = req.body.content;
+      if( req.user.role === 'admin' && (req.body.blacklist === true || req.body.blacklist===false) ) post.blacklist = req.body.blacklist;
+      // add email option 
+      await post.save({validateBeforeSave:false});
 
       res.status(200).json({
         status: 'success',
