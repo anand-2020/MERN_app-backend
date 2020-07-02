@@ -2,6 +2,7 @@ const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
 const Post = require('../models/postModel');
+const Email = require('./../utils/email');
 
 const filterObj = (obj, ...allowedFields) => {
     const newObj = {};
@@ -21,14 +22,8 @@ exports.getAllUsers = catchAsync(async (req,res,next) => {
 });
 
 exports.updateMe = catchAsync(async (req,res,next) => {
-  if(req.body.password || req.body.confirmPassword) {
-      return next(
-          new AppError('This route is not for password updates', 400)
-      );
-  }
-
-const filteredBody = filterObj(req.body, 'username', 'email');
-const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
+ 
+const updatedUser = await User.findByIdAndUpdate(req.user.id, {email:req.body.email, emailIsVerified:false}, {
     new: true,
     runValidators: true
 });
@@ -48,17 +43,18 @@ exports.updateUser = catchAsync(async (req, res, next) => {
        runValidators: true
       });
     
-      if (!user) {
+      if (!user){
         return next(new AppError('No user found with that ID', 404));
       }
-      /*if(user.blacklist){
-        const posts = await Post.find({author:user.username });
-        posts.forEach( post => { post.blacklist= true; });
+      if(req.body.blacklist===true) { 
+        await Post.updateMany({author:req.body.username},{blacklist:true});
+        await new Email(user).userBlacklisted();
+      }
 
-        await posts.save();
-      }*/
+      if(req.body.blacklist===false) {
+        await new Email(user).userWhitelisted();
+      }
       
-    
       res.status(200).json({
         status: 'success',
         data: {
@@ -68,7 +64,7 @@ exports.updateUser = catchAsync(async (req, res, next) => {
 });
 
 exports.myPosts = catchAsync(async (req, res, next) => {
-     const posts = await Post.find({author:req.user.username });
+     const posts = await Post.find({author:req.params.username }).sort('-createdAt').populate('rxn');
 
      res.status(200).json({
       status: 'success',

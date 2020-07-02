@@ -36,19 +36,15 @@ const createSendToken =(user, statusCode, res) => {
 
 exports.signup = catchAsync( async (req,res,next) => {
     
-    const token = Math.floor(Math.random()*Math.floor(9999));
-
-    const hashedToken = await bcrypt.hash(JSON.stringify(token), 10);
-    
     const newUser = await User.create({
         username: req.body.username,
         email: req.body.email,
         password: req.body.password,
         confirmPassword:req.body.confirmPassword,
-        emailVerificationToken: hashedToken
+        lastLogin: Date.now()
     });
     
-    await new Email(newUser,token).sendWelcome();
+    await new Email(newUser).sendWelcome(); 
 
     createSendToken(newUser, 201, res);
 });
@@ -65,7 +61,9 @@ exports.login = catchAsync(async (req, res, next) => {
    if(!user || !(await user.correctPassword(password, user.password)) ) {
        return next(new AppError('Incorrect email or password', 401));
    }
-
+   user.lastLogin = Date.now();
+   await user.save({validateBeforeSave:false});
+  
    createSendToken(user, 200, res);
 });
 
@@ -178,8 +176,9 @@ exports.forgotPassword = catchAsync(async (req,res,next) => {
 
 exports.resetPassword = async (req,res,next) => {
     const user = await User.findOne({email: req.params.email,  passwordResetExpires: {$gt:Date.now()}});
-
+   
     if(!user){
+
         return next(new AppError('OTP has expired!',400));
     }
 
@@ -191,7 +190,7 @@ exports.resetPassword = async (req,res,next) => {
         await user.save({validateBeforeSave: false});
         return next(new AppError('Wrong OTP !!',400));
     }
-      // check for equality of password and confirm password
+      
     user.password = req.body.password;
     user.confirmPassword = req.body.confirmPassword;
     user.passResetToken = undefined;
@@ -209,15 +208,25 @@ exports.resetPassword = async (req,res,next) => {
 
 }
 
-exports.verifyEmail = catchAsync(async (req, res, next) => {
+exports.verifyEmailToken = catchAsync(async (req, res, next) => {
+    const d1 = new Date(req.user.emailTokenExpires);
+    const dt = Date.now();
+    const d2 = new Date(dt);
+     if(d2>d1){
+         return next(new AppError('OTP Expired!!',400));
+     }
      const token = await bcrypt.compare(req.body.token, req.user.emailVerificationToken);
 
      if(!token){
+        req.user.emailVerificationToken = undefined;
+        req.user.emailTokenExpires = undefined;
+        await req.user.save({validateBeforeSave:false});
         return next(new AppError('Wrong OTP !!',400));
      }
      
      req.user.emailIsVerified = true;
      req.user.emailVerificationToken = undefined;
+     req.user.emailTokenExpires=undefined;
      await req.user.save({validateBeforeSave: false});
 
      await new Email(req.user).emailVerified();
@@ -225,4 +234,35 @@ exports.verifyEmail = catchAsync(async (req, res, next) => {
          status:'success',
          message:'Your email has been verified!'
      });
+});
+
+exports.getEmailToken = catchAsync(async (req, res, next) => {
+    const token = Math.floor(Math.random()*Math.floor(9999));
+    const hashedToken = await bcrypt.hash(JSON.stringify(token), 10);
+    const dt = Date.now() + 10 * 60 * 1000;
+    
+    req.user.emailVerificationToken = hashedToken;
+    req.user.emailTokenExpires = dt;
+    const user = await req.user.save({validateBeforeSave:false});
+
+   
+    try {
+       
+        await new Email(user,hashedToken).emailVerificationToken(); 
+ 
+        res.status(200).json({
+            status:'success',
+            message:'token sent to mail',
+            data:{user}
+        });
+     } catch(err) {
+        req.user.emailVerificationToken = undefined;
+        req.user.emailTokenExpires = undefined;
+         
+         await req.user.save({ validateBeforeSave: false});
+ 
+         return next(new AppError('There was an error sending the mail. Try again later!!',500));
+     }
+      
+  
 });

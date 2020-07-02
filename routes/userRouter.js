@@ -12,13 +12,16 @@ router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:email', authController.resetPassword);
 router.get('/isLoggedIn',authController.protect, authController.checkLoggedInStatus);
 
-router.post('/verifyEmail',authController.protect,authController.verifyEmail);
+router
+   .route('/verifyEmail')
+   .get(authController.protect, authController.getEmailToken)
+   .post(authController.protect, authController.verifyEmailToken);
 
 router.patch('/updateMyPassword', authController.protect, authController.updatePassword);
 
 router.patch('/updateMe', authController.protect, userController.updateMe);
 
-router.get('/myPosts',authController.protect, userController.myPosts);
+router.get('/posts/:username',authController.protect,userController.myPosts);
 
 router
   .route('/')
