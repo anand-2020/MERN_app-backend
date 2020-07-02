@@ -41,11 +41,11 @@ const userSchema = new Schema({
     passResetToken: String,
     passwordResetExpires : Date,
     emailVerificationToken: String,
-    emailIsVerified: {type: Boolean, default: false}
+    emailTokenExpires:Date,
+    emailIsVerified: {type: Boolean, default: false},
+    lastLogin:Date,
 
-}, {
-    timestamps: true,
-});
+}, );
 
 userSchema.pre('save', async function(next) {
     if(!this.isModified('password')) return next();
