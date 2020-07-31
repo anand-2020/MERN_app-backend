@@ -232,7 +232,10 @@ exports.verifyEmailToken = catchAsync(async (req, res, next) => {
      await new Email(req.user).emailVerified();
      res.status(200).json({
          status:'success',
-         message:'Your email has been verified!'
+         message:'Your email has been verified!',
+         data:{
+             user:req.user
+         }
      });
 });
 
@@ -248,7 +251,7 @@ exports.getEmailToken = catchAsync(async (req, res, next) => {
    
     try {
        
-        await new Email(user,hashedToken).emailVerificationToken(); 
+        await new Email(user,token).emailVerificationToken(); 
  
         res.status(200).json({
             status:'success',
